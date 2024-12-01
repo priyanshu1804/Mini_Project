@@ -3,7 +3,6 @@ const router=express.Router();
 const Playlist=require('../models/Playlist');
 const User=require('../models/User');
 const Song=require('../models/Song');
-const auth=require('../middleware/auth');
 const passport=require('passport');
 router.post('/create',passport.authenticate('jwt',{session:false}),async(req,res)=>{
     const currentUser=req.user;
@@ -31,9 +30,10 @@ router.get('/get/playlist/:playlistId',passport.authenticate('jwt',{session:fals
 });
 router.get('/get/artist/:artistId',passport.authenticate('jwt',{session:false}),async(req,res)=>{
     const artistId=req.params.artistId;
-    const artist=User.findOne({_id:artistId});
+    const artist=await User.findOne({ _id: artistId });
     if(!artist){
-        return res.status(304).json({error:"Artist not found"});
+        console.log(artist);
+        return res.status(404).json({error:"Artist not found" });
     }
     const playlist=await Playlist.find({owner:artistId});
     return res.status(200).json({data:playlist});
@@ -43,14 +43,14 @@ router.post('/add/song',passport.authenticate('jwt',{session:false}),async(req,r
     const {playlistId,songId}=req.body;
     const playlist=await Playlist.findOne({_id:playlistId});
     if(!playlist){
-        return res.status(304).json({error:"Playlist not found"});
+        return res.status(404).json({error:"Playlist not found"});
     }
     if(!playlist.owner.equals(currentUser._id)&&!playlist.collaborators.includes(currentUser._id)){
-        return res.status(304).json({error:"You are not authorized to perform this action"});        
+        return res.status(404).json({error:"You are not authorized to perform this action"});        
     }
     const song=await Song.findOne({_id:songId});
     if(!song){
-        return res.status(304).json({error:"Song not found"});
+        return res.status(404).json({error:"Song not found"});
     }
     playlist.songs.push(songId);
     await playlist.save();
